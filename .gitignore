@@ -1,0 +1,8 @@
+venv/
+*.csv
+*.zip
+logs/
+target/
+dbt_packages/
+.env
+__pycache__/
