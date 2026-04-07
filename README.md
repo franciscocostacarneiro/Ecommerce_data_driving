@@ -1,4 +1,4 @@
-# Etapa 3: dbt & Camada Analitica | Jornada de Dados
+# Etapa 3: dbt & Camada Analitica | Francisco Costa Carneiro
 
 As etapas anteriores foram formalizadas nos notebooks e essa etapa aqui no .md.
 
