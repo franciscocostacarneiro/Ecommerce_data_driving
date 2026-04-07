@@ -1,4 +1,6 @@
-# Dia 3: dbt & Camada Analitica | Jornada de Dados
+# Etapa 3: dbt & Camada Analitica | Jornada de Dados
+
+As etapas anteriores foram formalizadas nos notebooks e essa etapa aqui no .md.
 
 Projeto dbt com arquitetura Medalhao (Bronze -> Silver -> Gold) usando PostgreSQL.
 
