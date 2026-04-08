@@ -15,7 +15,7 @@ Desenvolvi uma plataforma de dados completa para o e-commerce Shopbr, com foco e
 .Etapa 1: Análise Exploratória e SQL e Pandas: Resposta a 12 perguntas de negócio críticas (como faturamento total, ticket médio e ranking de produtos) utilizando comandos avançados como Joins, Window Functions (Row Number), CTEs e Agregações;<br>
 .Etapa 2: Extração de Dados com Python: Automação da coleta de dados simulando sistemas do mundo real, incluindo integração com APIs e manipulação de arquivos nos formatos JSON e Parquet<br>
 .Etapa 3: Engenharia e Modelagem de Dados: Utilização do dbt para organizar a arquitetura de dados, transformando dados brutos em informações modeladas e persistentes no banco de dados<br>
-.Etapa 4: Inteligência Artificial: Integração de uma camada de IA Agêntica para permitir que gestores realizem consultas complexas diretamente pelo celular<br><br>
+.Etapa 4: Dashboard e Inteligência Artificial: Integração de uma camada de IA Agêntica para permitir que gestores realizem consultas complexas diretamente pelo celular e disponibilização dos dados em um dashboard desenvolvido em Python, no treamlit.<br><br>
 
 ### Principais Técnicas e Diferenciais<br>
 . Visão Holística: Atuação de ponta a ponta na esteira de dados, desempenhando papéis de Engenheiro, Analytics Engineer e Analista;<br>
