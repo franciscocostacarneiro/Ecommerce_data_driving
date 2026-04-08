@@ -42,7 +42,35 @@ def _get_postgres_url() -> str:
 
 POSTGRES_URL = _get_postgres_url()
 
-st.set_page_config(layout="wide", page_title="E-commerce Analytics")
+st.set_page_config(layout="wide", page_title="E-commerce Analytics", page_icon="📊")
+
+# ---------------------------------------------------------------------------
+# Design system — paleta semântica consistente (skill: "color with purpose")
+# ---------------------------------------------------------------------------
+PALETA = {
+    "primario":   "#0068C9",   # azul — métrica neutra / tendência
+    "positivo":   "#00CC96",   # verde — bom, mais barato, crescimento
+    "negativo":   "#EF553B",   # vermelho — alerta, mais caro
+    "atencao":    "#F59E0B",   # âmbar — atenção / VIP/destaque
+    "neutro":     "#6B7280",   # cinza — secundário / TOP_TIER
+}
+
+CORES_SEGMENTO = {
+    "VIP":      PALETA["atencao"],
+    "TOP_TIER": PALETA["neutro"],
+    "REGULAR":  PALETA["primario"],
+}
+
+CORES_PRICING = {
+    "MAIS_CARO_QUE_TODOS":   PALETA["negativo"],
+    "MAIS_BARATO_QUE_TODOS": PALETA["positivo"],
+    "ACIMA_DA_MEDIA":        "#FF8C42",
+    "ABAIXO_DA_MEDIA":       "#48CAE4",
+    "NA_MEDIA":              PALETA["neutro"],
+}
+
+# Template plotly — remove chartjunk (skill: "data-ink ratio")
+TEMPLATE = "plotly_white"
 
 
 # ---------------------------------------------------------------------------
@@ -93,11 +121,15 @@ pagina = st.sidebar.radio("Navegação", ["Vendas", "Clientes", "Pricing"])
 # ===========================================================================
 
 if pagina == "Vendas":
-    st.title("Vendas — Visão do Diretor Comercial")
+    st.title("📈 Vendas — Visão do Diretor Comercial")
 
     df = get_data("SELECT * FROM public_gold_sales.vendas_temporais")
     if df.empty:
         st.stop()
+
+    # Casting numérico antecipado (evita erros silenciosos nos gráficos)
+    for col in ["receita_total", "total_vendas", "total_clientes_unicos", "ticket_medio"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
     # Filtro de mês
     meses_disponiveis = sorted(df["mes_venda"].unique().tolist())
@@ -106,21 +138,25 @@ if pagina == "Vendas":
 
     df_filtrado = df if mes_sel == "Todos os meses" else df[df["mes_venda"] == int(mes_sel)]
 
+    if df_filtrado.empty:
+        st.info("Nenhum dado disponível para o filtro selecionado.")
+        st.stop()
+
     # KPIs
     receita_total = df_filtrado["receita_total"].sum()
-    total_vendas = df_filtrado["total_vendas"].sum()
-    ticket_medio = receita_total / total_vendas if total_vendas > 0 else 0
+    total_vendas  = df_filtrado["total_vendas"].sum()
+    ticket_medio  = receita_total / total_vendas if total_vendas > 0 else 0
     clientes_unicos = df_filtrado["total_clientes_unicos"].sum()
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Receita Total", fmt_brl(receita_total))
-    c2.metric("Total de Vendas", fmt_int(total_vendas))
-    c3.metric("Ticket Médio", fmt_brl(ticket_medio))
-    c4.metric("Clientes Únicos", fmt_int(clientes_unicos))
+    c1.metric("💰 Receita Total",    fmt_brl(receita_total))
+    c2.metric("🛒 Total de Vendas",  fmt_int(total_vendas))
+    c3.metric("🎯 Ticket Médio",     fmt_brl(ticket_medio))
+    c4.metric("👥 Clientes Únicos",  fmt_int(clientes_unicos))
 
     st.divider()
 
-    # Gráfico 1 — Receita Diária
+    # Gráfico 1 — Receita Diária (tendência)
     df_dia = (
         df_filtrado.groupby("data_venda", as_index=False)["receita_total"]
         .sum()
@@ -130,10 +166,14 @@ if pagina == "Vendas":
         df_dia,
         x="data_venda",
         y="receita_total",
-        title="Receita Diária",
+        title="Receita Diária — evolução no período",
         labels={"data_venda": "Data", "receita_total": "Receita (R$)"},
+        template=TEMPLATE,
+        color_discrete_sequence=[PALETA["primario"]],
     )
-    st.plotly_chart(fig1, width='stretch')
+    fig1.update_traces(hovertemplate="<b>%{x}</b><br>Receita: R$ %{y:,.2f}<extra></extra>")
+    fig1.update_layout(yaxis_tickprefix="R$ ", yaxis_tickformat=",.0f")
+    st.plotly_chart(fig1, use_container_width=True)
 
     col_a, col_b = st.columns(2)
 
@@ -147,9 +187,13 @@ if pagina == "Vendas":
         df_semana,
         x="dia_semana_nome",
         y="receita_total",
-        title="Receita por Dia da Semana",
-        labels={"dia_semana_nome": "Dia", "receita_total": "Receita (R$)"},
+        title="Receita por Dia da Semana — qual dia vende mais?",
+        labels={"dia_semana_nome": "", "receita_total": "Receita (R$)"},
+        template=TEMPLATE,
+        color_discrete_sequence=[PALETA["primario"]],
     )
+    fig2.update_traces(hovertemplate="<b>%{x}</b><br>Receita: R$ %{y:,.2f}<extra></extra>")
+    fig2.update_layout(yaxis_tickprefix="R$ ", yaxis_tickformat=",.0f")
     col_a.plotly_chart(fig2, use_container_width=True)
 
     # Gráfico 3 — Vendas por Hora
@@ -162,9 +206,12 @@ if pagina == "Vendas":
         df_hora,
         x="hora_venda",
         y="total_vendas",
-        title="Volume de Vendas por Hora",
+        title="Volume de Vendas por Hora — horário de pico",
         labels={"hora_venda": "Hora", "total_vendas": "Vendas"},
+        template=TEMPLATE,
+        color_discrete_sequence=[PALETA["primario"]],
     )
+    fig3.update_traces(hovertemplate="<b>%{x}h</b><br>Vendas: %{y}<extra></extra>")
     col_b.plotly_chart(fig3, use_container_width=True)
 
 
@@ -173,29 +220,33 @@ if pagina == "Vendas":
 # ===========================================================================
 
 elif pagina == "Clientes":
-    st.title("Clientes — Visão da Diretora de Customer Success")
+    st.title("👥 Clientes — Visão da Diretora de Customer Success")
 
     df = get_data("SELECT * FROM public_gold_cs.clientes_segmentacao")
     if df.empty:
         st.stop()
 
+    # Casting numérico antecipado
+    for col in ["receita_total", "ticket_medio", "total_compras", "ranking_receita"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
     # KPIs (sempre sobre a base completa)
-    total_clientes = len(df)
-    clientes_vip = len(df[df["segmento_cliente"] == "VIP"])
-    receita_vip = df[df["segmento_cliente"] == "VIP"]["receita_total"].sum()
+    total_clientes    = len(df)
+    clientes_vip      = len(df[df["segmento_cliente"] == "VIP"])
+    receita_vip       = df[df["segmento_cliente"] == "VIP"]["receita_total"].sum()
     ticket_medio_geral = df["ticket_medio"].mean()
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Clientes", fmt_int(total_clientes))
-    c2.metric("Clientes VIP", fmt_int(clientes_vip))
-    c3.metric("Receita VIP", fmt_brl(receita_vip))
-    c4.metric("Ticket Médio Geral", fmt_brl(ticket_medio_geral))
+    c1.metric("👤 Total Clientes",      fmt_int(total_clientes))
+    c2.metric("⭐ Clientes VIP",        fmt_int(clientes_vip))
+    c3.metric("💎 Receita VIP",         fmt_brl(receita_vip))
+    c4.metric("🎯 Ticket Médio Geral",  fmt_brl(ticket_medio_geral))
 
     st.divider()
 
     col_a, col_b = st.columns(2)
 
-    # Gráfico 1 — Distribuição por Segmento
+    # Gráfico 1 — Distribuição por Segmento (donut — skill: "Part of whole → Donut")
     df_seg = (
         df.groupby("segmento_cliente", as_index=False)
         .size()
@@ -205,8 +256,13 @@ elif pagina == "Clientes":
         df_seg,
         names="segmento_cliente",
         values="total",
+        hole=0.45,
         title="Distribuição de Clientes por Segmento",
+        color="segmento_cliente",
+        color_discrete_map=CORES_SEGMENTO,
+        template=TEMPLATE,
     )
+    fig1.update_traces(textinfo="percent+label", hovertemplate="<b>%{label}</b><br>Clientes: %{value}<br>%{percent}<extra></extra>")
     col_a.plotly_chart(fig1, use_container_width=True)
 
     # Gráfico 2 — Receita por Segmento
@@ -215,23 +271,32 @@ elif pagina == "Clientes":
         df_rec_seg,
         x="segmento_cliente",
         y="receita_total",
-        title="Receita por Segmento",
-        labels={"segmento_cliente": "Segmento", "receita_total": "Receita (R$)"},
+        title="Receita por Segmento — VIP concentra maior valor",
+        labels={"segmento_cliente": "", "receita_total": "Receita (R$)"},
+        color="segmento_cliente",
+        color_discrete_map=CORES_SEGMENTO,
+        template=TEMPLATE,
     )
+    fig2.update_traces(hovertemplate="<b>%{x}</b><br>Receita: R$ %{y:,.2f}<extra></extra>")
+    fig2.update_layout(showlegend=False, yaxis_tickprefix="R$ ", yaxis_tickformat=",.0f")
     col_b.plotly_chart(fig2, use_container_width=True)
 
     col_c, col_d = st.columns(2)
 
     # Gráfico 3 — Top 10 Clientes (barras horizontais)
-    df_top10 = df[df["ranking_receita"] <= 10].sort_values("receita_total")
+    df_top10 = df[df["ranking_receita"] <= 10].sort_values("receita_total", ascending=True)
     fig3 = px.bar(
         df_top10,
         x="receita_total",
         y="nome_cliente",
         orientation="h",
-        title="Top 10 Clientes",
-        labels={"nome_cliente": "Cliente", "receita_total": "Receita (R$)"},
+        title="Top 10 Clientes por Receita",
+        labels={"nome_cliente": "", "receita_total": "Receita (R$)"},
+        template=TEMPLATE,
+        color_discrete_sequence=[PALETA["atencao"]],
     )
+    fig3.update_traces(hovertemplate="<b>%{y}</b><br>Receita: R$ %{x:,.2f}<extra></extra>")
+    fig3.update_layout(xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
     col_c.plotly_chart(fig3, use_container_width=True)
 
     # Gráfico 4 — Clientes por Estado
@@ -245,9 +310,12 @@ elif pagina == "Clientes":
         df_estado,
         x="estado",
         y="total",
-        title="Clientes por Estado",
-        labels={"estado": "Estado", "total": "Clientes"},
+        title="Clientes por Estado — distribuição geográfica",
+        labels={"estado": "", "total": "Clientes"},
+        template=TEMPLATE,
+        color_discrete_sequence=[PALETA["primario"]],
     )
+    fig4.update_traces(hovertemplate="<b>%{x}</b><br>Clientes: %{y}<extra></extra>")
     col_d.plotly_chart(fig4, use_container_width=True)
 
     st.divider()
@@ -256,7 +324,10 @@ elif pagina == "Clientes":
     segmentos = ["Todos"] + sorted(df["segmento_cliente"].unique().tolist())
     seg_sel = st.selectbox("Filtrar tabela por segmento:", segmentos)
     df_tabela = df if seg_sel == "Todos" else df[df["segmento_cliente"] == seg_sel]
-    st.dataframe(df_tabela, use_container_width=True)
+    if df_tabela.empty:
+        st.info("Nenhum cliente encontrado para o segmento selecionado.")
+    else:
+        st.dataframe(df_tabela, use_container_width=True)
 
 
 # ===========================================================================
@@ -264,39 +335,49 @@ elif pagina == "Clientes":
 # ===========================================================================
 
 elif pagina == "Pricing":
-    st.title("Pricing — Visão do Diretor de Pricing")
+    st.title("🏷️ Pricing — Visão do Diretor de Pricing")
 
     df = get_data("SELECT * FROM public_gold_pricing.precos_competitividade")
     if df.empty:
         st.stop()
+
+    # Casting numérico antecipado
+    for col in ["nosso_preco", "preco_medio_concorrentes", "preco_minimo_concorrentes",
+                "preco_maximo_concorrentes", "diferenca_percentual_vs_media",
+                "diferenca_percentual_vs_minimo", "receita_total", "quantidade_total"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
     # Filtro de categoria
     categorias = sorted(df["categoria"].unique().tolist())
     cat_sel = st.multiselect("Filtrar por categoria:", categorias)
     df_filtrado = df[df["categoria"].isin(cat_sel)] if cat_sel else df
 
+    if df_filtrado.empty:
+        st.info("Nenhum produto encontrado para as categorias selecionadas.")
+        st.stop()
+
     # KPIs
     total_produtos = len(df_filtrado)
-    mais_caros = len(df_filtrado[df_filtrado["classificacao_preco"] == "MAIS_CARO_QUE_TODOS"])
+    mais_caros  = len(df_filtrado[df_filtrado["classificacao_preco"] == "MAIS_CARO_QUE_TODOS"])
     mais_baratos = len(df_filtrado[df_filtrado["classificacao_preco"] == "MAIS_BARATO_QUE_TODOS"])
-    diff_media = df_filtrado["diferenca_percentual_vs_media"].mean()
-    diff_str = (
+    diff_media  = df_filtrado["diferenca_percentual_vs_media"].mean()
+    diff_str    = (
         f"{'+' if diff_media >= 0 else ''}{diff_media:.1f}%"
-        if not pd.isna(diff_media)
-        else "-"
+        if not pd.isna(diff_media) else "-"
     )
+    diff_delta_color = "inverse" if diff_media > 0 else "normal"
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Produtos Monitorados", fmt_int(total_produtos))
-    c2.metric("Mais Caros que Todos", fmt_int(mais_caros))
-    c3.metric("Mais Baratos que Todos", fmt_int(mais_baratos))
-    c4.metric("Diferença Média vs Mercado", diff_str)
+    c1.metric("📦 Produtos Monitorados",     fmt_int(total_produtos))
+    c2.metric("🔴 Mais Caros que Todos",      fmt_int(mais_caros))
+    c3.metric("🟢 Mais Baratos que Todos",    fmt_int(mais_baratos))
+    c4.metric("📊 Diferença Média vs Mercado", diff_str)
 
     st.divider()
 
     col_a, col_b = st.columns(2)
 
-    # Gráfico 1 — Posicionamento por Classificação
+    # Gráfico 1 — Posicionamento por Classificação (donut)
     df_class = (
         df_filtrado.groupby("classificacao_preco", as_index=False)
         .size()
@@ -306,8 +387,13 @@ elif pagina == "Pricing":
         df_class,
         names="classificacao_preco",
         values="total",
+        hole=0.45,
         title="Posicionamento de Preço vs Concorrência",
+        color="classificacao_preco",
+        color_discrete_map=CORES_PRICING,
+        template=TEMPLATE,
     )
+    fig1.update_traces(textinfo="percent+label", hovertemplate="<b>%{label}</b><br>Produtos: %{value}<br>%{percent}<extra></extra>")
     col_a.plotly_chart(fig1, use_container_width=True)
 
     # Gráfico 2 — Competitividade por Categoria
@@ -320,22 +406,22 @@ elif pagina == "Pricing":
         x="categoria",
         y="diferenca_percentual_vs_media",
         color="posicao",
-        color_discrete_map={"Mais caro": "#EF553B", "Mais barato": "#00CC96"},
-        title="Competitividade por Categoria",
+        color_discrete_map={"Mais caro": PALETA["negativo"], "Mais barato": PALETA["positivo"]},
+        title="Competitividade por Categoria — vermelho = mais caro que concorrentes",
         labels={
-            "categoria": "Categoria",
+            "categoria": "",
             "diferenca_percentual_vs_media": "Diff % vs Média Mercado",
             "posicao": "Posição",
         },
+        template=TEMPLATE,
     )
+    fig2.update_traces(hovertemplate="<b>%{x}</b><br>Diff: %{y:.1f}%<extra></extra>")
+    fig2.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
     col_b.plotly_chart(fig2, use_container_width=True)
 
     # Gráfico 3 — Scatter: Competitividade x Volume
     df_scatter = df_filtrado.copy()
-    df_scatter["receita_total"] = pd.to_numeric(df_scatter["receita_total"], errors="coerce").fillna(0)
-    df_scatter["quantidade_total"] = pd.to_numeric(df_scatter["quantidade_total"], errors="coerce").fillna(0)
-    df_scatter["diferenca_percentual_vs_media"] = pd.to_numeric(df_scatter["diferenca_percentual_vs_media"], errors="coerce").fillna(0)
-    df_scatter["size_col"] = df_scatter["receita_total"].clip(lower=0) + 1  # garantir valores > 0 para size
+    df_scatter["size_col"] = df_scatter["receita_total"].clip(lower=0) + 1
     fig3 = px.scatter(
         df_scatter,
         x="diferenca_percentual_vs_media",
@@ -343,19 +429,23 @@ elif pagina == "Pricing":
         color="classificacao_preco",
         size="size_col",
         hover_name="nome_produto",
-        title="Competitividade x Volume de Vendas",
+        hover_data={"size_col": False, "categoria": True, "nosso_preco": True},
+        title="Competitividade x Volume — produtos mais caros vendem menos?",
         labels={
             "diferenca_percentual_vs_media": "Diff % vs Média Mercado",
             "quantidade_total": "Qtd Vendida",
             "classificacao_preco": "Classificação",
         },
+        color_discrete_map=CORES_PRICING,
+        template=TEMPLATE,
     )
+    fig3.add_vline(x=0, line_dash="dash", line_color="gray", opacity=0.5)
     st.plotly_chart(fig3, use_container_width=True)
 
     st.divider()
 
     # Tabela de Alertas
-    st.subheader("Produtos em Alerta (mais caros que todos os concorrentes)")
+    st.subheader("🚨 Produtos em Alerta — mais caros que todos os concorrentes")
     df_alerta = df_filtrado[df_filtrado["classificacao_preco"] == "MAIS_CARO_QUE_TODOS"][
         [
             "produto_id",
@@ -365,5 +455,9 @@ elif pagina == "Pricing":
             "preco_maximo_concorrentes",
             "diferenca_percentual_vs_media",
         ]
-    ]
-    st.dataframe(df_alerta, use_container_width=True)
+    ].sort_values("diferenca_percentual_vs_media", ascending=False)
+    if df_alerta.empty:
+        st.success("Nenhum produto mais caro que todos os concorrentes no filtro atual.")
+    else:
+        st.caption(f"{len(df_alerta)} produto(s) precisam de revisão de preço.")
+        st.dataframe(df_alerta, use_container_width=True)
