@@ -173,7 +173,7 @@ if pagina == "Vendas":
     )
     fig1.update_traces(hovertemplate="<b>%{x}</b><br>Receita: R$ %{y:,.2f}<extra></extra>")
     fig1.update_layout(yaxis_tickprefix="R$ ", yaxis_tickformat=",.0f")
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig1, width='stretch')
 
     col_a, col_b = st.columns(2)
 
@@ -194,7 +194,7 @@ if pagina == "Vendas":
     )
     fig2.update_traces(hovertemplate="<b>%{x}</b><br>Receita: R$ %{y:,.2f}<extra></extra>")
     fig2.update_layout(yaxis_tickprefix="R$ ", yaxis_tickformat=",.0f")
-    col_a.plotly_chart(fig2, use_container_width=True)
+    col_a.plotly_chart(fig2, width='stretch')
 
     # Gráfico 3 — Vendas por Hora
     df_hora = (
@@ -212,7 +212,7 @@ if pagina == "Vendas":
         color_discrete_sequence=[PALETA["primario"]],
     )
     fig3.update_traces(hovertemplate="<b>%{x}h</b><br>Vendas: %{y}<extra></extra>")
-    col_b.plotly_chart(fig3, use_container_width=True)
+    col_b.plotly_chart(fig3, width='stretch')
 
 
 # ===========================================================================
@@ -263,7 +263,7 @@ elif pagina == "Clientes":
         template=TEMPLATE,
     )
     fig1.update_traces(textinfo="percent+label", hovertemplate="<b>%{label}</b><br>Clientes: %{value}<br>%{percent}<extra></extra>")
-    col_a.plotly_chart(fig1, use_container_width=True)
+    col_a.plotly_chart(fig1, width='stretch')
 
     # Gráfico 2 — Receita por Segmento
     df_rec_seg = df.groupby("segmento_cliente", as_index=False)["receita_total"].sum()
@@ -279,7 +279,7 @@ elif pagina == "Clientes":
     )
     fig2.update_traces(hovertemplate="<b>%{x}</b><br>Receita: R$ %{y:,.2f}<extra></extra>")
     fig2.update_layout(showlegend=False, yaxis_tickprefix="R$ ", yaxis_tickformat=",.0f")
-    col_b.plotly_chart(fig2, use_container_width=True)
+    col_b.plotly_chart(fig2, width='stretch')
 
     col_c, col_d = st.columns(2)
 
@@ -297,26 +297,37 @@ elif pagina == "Clientes":
     )
     fig3.update_traces(hovertemplate="<b>%{y}</b><br>Receita: R$ %{x:,.2f}<extra></extra>")
     fig3.update_layout(xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
-    col_c.plotly_chart(fig3, use_container_width=True)
+    col_c.plotly_chart(fig3, width='stretch')
 
-    # Gráfico 4 — Clientes por Estado
+    # Gráfico 4 — Clientes por Estado (Mapa coroplético)
     df_estado = (
         df.groupby("estado", as_index=False)
         .size()
         .rename(columns={"size": "total"})
         .sort_values("total", ascending=False)
     )
-    fig4 = px.bar(
+    _BRAZIL_GEOJSON = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+    fig4 = px.choropleth(
         df_estado,
-        x="estado",
-        y="total",
+        geojson=_BRAZIL_GEOJSON,
+        locations="estado",
+        featureidkey="properties.sigla",
+        color="total",
+        color_continuous_scale=["#dbeafe", PALETA["primario"]],
         title="Clientes por Estado — distribuição geográfica",
-        labels={"estado": "", "total": "Clientes"},
-        template=TEMPLATE,
-        color_discrete_sequence=[PALETA["primario"]],
+        labels={"total": "Clientes", "estado": "UF"},
+        hover_data={"estado": True, "total": True},
     )
-    fig4.update_traces(hovertemplate="<b>%{x}</b><br>Clientes: %{y}<extra></extra>")
-    col_d.plotly_chart(fig4, use_container_width=True)
+    fig4.update_geos(
+        fitbounds="locations",
+        visible=False,
+    )
+    fig4.update_layout(
+        margin={"r": 0, "t": 40, "l": 0, "b": 0},
+        coloraxis_colorbar={"title": "Clientes"},
+    )
+    fig4.update_traces(hovertemplate="<b>%{location}</b><br>Clientes: %{z}<extra></extra>")
+    col_d.plotly_chart(fig4, width='stretch')
 
     st.divider()
 
@@ -327,7 +338,7 @@ elif pagina == "Clientes":
     if df_tabela.empty:
         st.info("Nenhum cliente encontrado para o segmento selecionado.")
     else:
-        st.dataframe(df_tabela, use_container_width=True)
+        st.dataframe(df_tabela, width='stretch')
 
 
 # ===========================================================================
@@ -394,7 +405,7 @@ elif pagina == "Pricing":
         template=TEMPLATE,
     )
     fig1.update_traces(textinfo="percent+label", hovertemplate="<b>%{label}</b><br>Produtos: %{value}<br>%{percent}<extra></extra>")
-    col_a.plotly_chart(fig1, use_container_width=True)
+    col_a.plotly_chart(fig1, width='stretch')
 
     # Gráfico 2 — Competitividade por Categoria
     df_cat = df_filtrado.groupby("categoria", as_index=False)["diferenca_percentual_vs_media"].mean()
@@ -417,7 +428,7 @@ elif pagina == "Pricing":
     )
     fig2.update_traces(hovertemplate="<b>%{x}</b><br>Diff: %{y:.1f}%<extra></extra>")
     fig2.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
-    col_b.plotly_chart(fig2, use_container_width=True)
+    col_b.plotly_chart(fig2, width='stretch')
 
     # Gráfico 3 — Scatter: Competitividade x Volume
     df_scatter = df_filtrado.copy()
@@ -440,7 +451,7 @@ elif pagina == "Pricing":
         template=TEMPLATE,
     )
     fig3.add_vline(x=0, line_dash="dash", line_color="gray", opacity=0.5)
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, width='stretch')
 
     st.divider()
 
@@ -460,4 +471,4 @@ elif pagina == "Pricing":
         st.success("Nenhum produto mais caro que todos os concorrentes no filtro atual.")
     else:
         st.caption(f"{len(df_alerta)} produto(s) precisam de revisão de preço.")
-        st.dataframe(df_alerta, use_container_width=True)
+        st.dataframe(df_alerta, width='stretch')
