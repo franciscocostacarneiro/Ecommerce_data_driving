@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://url-da-sua-imagem.com/imagem.png" alt="Descrição" width="500"/>
+  <img src="Post 3.png" alt="Descrição" width="500"/>
 </p>
 
 Projeto: Plataforma de Dados E-commerce (Shopbr) – Da Extração à Inteligência Artificial
