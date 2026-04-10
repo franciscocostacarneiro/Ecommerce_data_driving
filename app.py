@@ -45,6 +45,46 @@ POSTGRES_URL = _get_postgres_url()
 st.set_page_config(layout="wide", page_title="E-commerce Analytics", page_icon="📊")
 
 # ---------------------------------------------------------------------------
+# Background — gradiente azul escuro
+# ---------------------------------------------------------------------------
+st.markdown("""
+<style>
+.stApp {
+    background:
+        radial-gradient(ellipse at 78% 2%, #1a50ae 0%, #0a2a72 18%, transparent 48%),
+        radial-gradient(circle at -8% 48%, #0d3888 0%, transparent 42%),
+        radial-gradient(circle at 48% 105%, #0a2260 0%, transparent 52%);
+    background-color: #010e24;
+}
+[data-testid="stHeader"] {
+    background-color: transparent;
+}
+section[data-testid="stSidebar"] {
+    background-color: rgba(1, 8, 28, 0.88);
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+section[data-testid="stSidebar"] * {
+    color: #e2e8f0 !important;
+}
+.stApp * {
+    color: #e2e8f0;
+}
+.stMetric label, .stMetric [data-testid="stMetricLabel"] {
+    color: #94a3b8 !important;
+}
+[data-testid="stMetricValue"] {
+    color: #f1f5f9 !important;
+}
+[data-testid="stMetricDelta"] {
+    color: #94a3b8 !important;
+}
+.stSelectbox label, .stMultiSelect label {
+    color: #94a3b8 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
 # Design system — paleta semântica consistente (skill: "color with purpose")
 # ---------------------------------------------------------------------------
 PALETA = {
@@ -69,8 +109,8 @@ CORES_PRICING = {
     "NA_MEDIA":              PALETA["neutro"],
 }
 
-# Template plotly — remove chartjunk (skill: "data-ink ratio")
-TEMPLATE = "plotly_white"
+# Template plotly — dark para harmonizar com o background
+TEMPLATE = "plotly_dark"
 
 
 # ---------------------------------------------------------------------------
